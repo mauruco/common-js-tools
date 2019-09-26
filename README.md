@@ -19,7 +19,7 @@ If "development" is not enabled, Log is automatically at "production" level.
 */
 
 const { Log } = require('common-js-tools');
-const log = new Log('Lorem');
+const log = new Log('ScriptName or ControllerName');
 log.console('This will always be displayed.');
 log.trace('This goes to the stack and will be displayed if an error occurs.');
 log.error('This will always be displayed after printing the entire stack.');
