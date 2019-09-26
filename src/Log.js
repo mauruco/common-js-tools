@@ -8,7 +8,7 @@ class Log {
     this.title = title;
     this.stack = [];
     this.stackSize = config.stackSize;
-    this.configDeploy = 'production';
+    this.configDeploy = 'undefined';
     if (fs.existsSync(`${home}/common-js-tools.json`)) {
       try {
         const configJson = JSON.parse(fs.readFileSync(`${home}/common-js-tools.json`, 'utf8'));
