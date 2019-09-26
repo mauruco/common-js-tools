@@ -1,0 +1,25 @@
+{
+  "name": "common-js-tools",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "nodemon index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mauruco/common-js-tools.git"
+  },
+  "author": "Mauro Brizida",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/mauruco/common-js-tools/issues"
+  },
+  "homepage": "https://github.com/mauruco/common-js-tools#readme",
+  "devDependencies": {
+    "eslint": "^6.4.0",
+    "eslint-config-airbnb-base": "^14.0.0",
+    "eslint-plugin-import": "^2.18.2"
+  }
+}
