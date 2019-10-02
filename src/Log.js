@@ -8,7 +8,7 @@ class Log {
     this.title = title;
     this.stack = [];
     this.stackSize = config.stackSize;
-    this.configDeploy = 'undefined';
+    this.configDeploy = 'production';
     if (fs.existsSync(`${home}/common-js-tools.json`)) {
       try {
         const configJson = JSON.parse(fs.readFileSync(`${home}/common-js-tools.json`, 'utf8'));
@@ -38,6 +38,12 @@ class Log {
     return new Date().toISOString().replace(/Z/g, '');
   }
 
+  static beautify(args) {
+    if (args.length && args.length > 1 || args[0] && !(args[0] instanceof Error)) return args;
+    const stack = args[0].stack.split('\n');
+    return `${args[0].message}\n${stack[0] || ''}${stack[1] || ''}`;
+  }
+
   create(type) {
     const date = Log.getDate();
     let types = {
@@ -59,13 +65,13 @@ class Log {
 
   console(...args) {
     let log = this.create('log');
-    log = log.concat(args);
+    log = log.concat(Log.beautify(args));
     console.log(...log);
   }
 
   trace(...args) {
     let log = this.create('trace');
-    log = log.concat(args);
+    log = log.concat(Log.beautify(args));
     if (this.stack.length > this.stackSize) this.stack = [];
     if (Log.isDev(this)) {
       return console.log(...log);
@@ -75,7 +81,7 @@ class Log {
 
   error(...args) {
     let log = this.create('error');
-    log = log.concat(args);
+    log = log.concat(Log.beautify(args));
     this.stack.map((error) => {
       console.log(...error);
     });
