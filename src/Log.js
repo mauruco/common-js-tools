@@ -1,6 +1,6 @@
 const fs = require('fs');
 
-const home = __dirname.replace(/(node_modules\/common-js-tools)?\/src/g, '');
+const home = __dirname.replace(/node_modules\/common-js-tools\/src/g, '');
 let config = { deploy: 'production', stackSize: 100 };
 
 class Log {
