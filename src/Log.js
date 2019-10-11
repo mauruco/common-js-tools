@@ -8,17 +8,23 @@ class Log {
     this.title = title;
     this.stack = [];
     this.stackSize = config.stackSize;
-    this.configDeploy = 'production';
+    this.configDeploy = '';
     if (fs.existsSync(`${home}/common-js-tools.json`)) {
       try {
         const configJson = JSON.parse(fs.readFileSync(`${home}/common-js-tools.json`, 'utf8'));
         this.stackSize = configJson.stackSize ? configJson.stackSize : this.stackSize;
-        this.configDeploy = configJson.deploy ? configJson.deploy : false;
+        this.configDeploy = configJson.deploy ? configJson.deploy : '';
+        if (!this.configDeploy)
+          this.configDeploy = process.env.NODE_ENV || process.env.ENVIRONMENT || process.env.environment;
       } catch (error) {
         console.log('Log.js failed to load settings');
         console.log(error);
       }
+      return;
     }
+    if (!this.configDeploy)
+      this.configDeploy = process.env.NODE_ENV || process.env.ENVIRONMENT || process.env.environment || 'production';
+    
   }
 
   static sequelize(...args) {
@@ -31,7 +37,7 @@ class Log {
 
   static isDev(log) {
     if (log.configDeploy === 'production') return false;
-    return (process.env.NODE_ENV === 'development' || log.configDeploy === 'development');
+    return true;
   }
 
   static getDate() {
