@@ -45,7 +45,7 @@ class Log {
   }
 
   static beautify(args) {
-    if (args.length && args.length > 1 || args[0] && !(args[0] instanceof Error)) return args;
+    if (args.length && args.length > 1 || args[0] && !(args[0] instanceof Error) || !args[0].stack) return args;
     const stack = args[0].stack.split('\n');
     return `${args[0].message}\n${stack[0] || ''}${stack[1] || ''}`;
   }
