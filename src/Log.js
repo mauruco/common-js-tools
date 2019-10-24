@@ -4,27 +4,28 @@ const home = __dirname.replace(/node_modules\/common-js-tools\/src/g, '');
 let config = { deploy: 'production', stackSize: 100 };
 
 class Log {
-  constructor(title = 'NO LOG TITLE DEFINED') {
+  constructor(title = 'NO LOG TITLE DEFINED', level) {
     this.title = title;
     this.stack = [];
     this.stackSize = config.stackSize;
     this.configDeploy = '';
     if (fs.existsSync(`${home}/common-js-tools.json`)) {
+      console.log('common-js-tools -> the use of common-js-tools.json is deprecated.');
+      console.log('use instead const log = new Log("The Script", "development or production");.');
+      console.log('now you can use the bucket config json, like: const log = new Log("The Script", bucketConfig.errorLevel);');
       try {
         const configJson = JSON.parse(fs.readFileSync(`${home}/common-js-tools.json`, 'utf8'));
         this.stackSize = configJson.stackSize ? configJson.stackSize : this.stackSize;
         this.configDeploy = configJson.deploy ? configJson.deploy : '';
-        if (!this.configDeploy)
-          this.configDeploy = process.env.NODE_ENV || process.env.ENVIRONMENT || process.env.environment;
+        if (!this.configDeploy) { this.configDeploy = process.env.NODE_ENV || process.env.ENVIRONMENT || process.env.environment; }
       } catch (error) {
         console.log('Log.js failed to load settings');
         console.log(error);
       }
       return;
     }
-    if (!this.configDeploy)
-      this.configDeploy = process.env.NODE_ENV || process.env.ENVIRONMENT || process.env.environment || 'production';
-    
+    if (!this.configDeploy) { this.configDeploy = process.env.NODE_ENV || process.env.ENVIRONMENT || process.env.environment || 'production'; }
+    if (level) this.configDeploy = level === 'development' ? 'development' : 'production';
   }
 
   static sequelize(...args) {
