@@ -29,11 +29,23 @@ class Log {
   }
 
   static sequelize(...args) {
+    console.log('common-js-tools -> the use of sequelize is deprecated.');
+    console.log('use instead Log.logSequelize("development or production");.');
     if (!Log.isDev({})) return;
     const reg = /^([^:]+:)(.*)/;
     const matchs = String(args[0] || '').match(reg);
     if (!matchs || !matchs.length) console.log(`\x1b[32m[SEQUELIZE]\x1b[0m ${Log.getDate()} \x1b[32m(SEQUELIZE) -> \x1b[0m\x1b[33m${args}\x1b[0m`);
     else console.log(`\x1b[32m[SEQUELIZE]\x1b[0m ${Log.getDate()} \x1b[32m(${matchs[1]}) -> \x1b[0m\x1b[33m${matchs[2]}\x1b[0m`);
+  }
+
+  static logSequelize(level) {
+    return (...args) => {
+      if (level !== 'development') return;
+      const reg = /^([^:]+:)(.*)/;
+      const matchs = String(args[0] || '').match(reg);
+      if (!matchs || !matchs.length) console.log(`\x1b[32m[SEQUELIZE]\x1b[0m ${Log.getDate()} \x1b[32m(SEQUELIZE) -> \x1b[0m\x1b[33m${args}\x1b[0m`);
+      else console.log(`\x1b[32m[SEQUELIZE]\x1b[0m ${Log.getDate()} \x1b[32m(${matchs[1]}) -> \x1b[0m\x1b[33m${matchs[2]}\x1b[0m`);
+    };
   }
 
   static isDev(log) {
