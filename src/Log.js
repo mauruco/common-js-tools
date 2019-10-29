@@ -143,8 +143,6 @@ class Log {
         if (self) self.splunkStack = [];
         try {
           let result = JSON.parse(Buffer.from(data).toString());
-          console.log(result);
-          console.log(!result.text === 'Success');
           if (result.text !== 'Success') {
             console.log('Splunk, response is not Success');
             console.log(data);
