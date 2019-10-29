@@ -13,9 +13,9 @@ class Log {
     if (process.env.NODE_ENV) this.errorLevel = process.env.NODE_ENV;
   }
 
-  static logSequelize(config) {
+  static logSequelize(errorLevel) {
     return (...args) => {
-      if (config.errorLevel !== 'development') return;
+      if (errorLevel !== 'development') return;
       const reg = /^([^:]+:)(.*)/;
       const matchs = String(args[0] || '').match(reg);
       if (!matchs || !matchs.length) console.log(`\x1b[32m[SEQUELIZE]\x1b[0m ${Log.getDate()} \x1b[32m(SEQUELIZE) -> \x1b[0m\x1b[33m${args}\x1b[0m`);
