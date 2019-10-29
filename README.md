@@ -6,25 +6,29 @@ How to use:
 
 ```javascript
 /**
-You can set NODE_ENV to "development" and the log will always print
-or create a common-js-tools.json file in the project root and set it to:
+If NODE_ENV is set to "development", the log will always print
 
-common-js-tools.json
-    {
-        "deploy": "development",
-        "stackSize": 100
+config
+{
+    "errorLevel": "development", // "production" or "onlySplunk" (fallback back if splunks fails is default err output)
+    "stackSize": 100,
+    splunk: { // Splunk works always in production level
+        enabled: true,
+        url: 'yours.splunk.url.com',
+        token: 'yours.splunk.token',
     }
+}
 
 If "development" is not enabled, Log is automatically at "production" level.
 */
 
 const { Log } = require('common-js-tools');
-const log = new Log('ScriptName or ControllerName');
+const log = new Log('ScriptName or ControllerName', config);
 log.console('This will always be displayed.');
 log.trace('This goes to the stack and will be displayed if an error occurs.');
 log.error('This will always be displayed after printing the entire stack.');
-// Sequelize use
-{ logging: Log.sequelize }
+// Sequelize logging, only development level
+{ logging: Log.logSequelize(config) }
 ```
 
 ## Function round

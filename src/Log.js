@@ -1,46 +1,21 @@
-const fs = require('fs');
-
-const home = __dirname.replace(/node_modules\/common-js-tools\/src/g, '');
-let config = { deploy: 'production', stackSize: 100 };
+const https = require('https');
 
 class Log {
-  constructor(title = 'NO LOG TITLE DEFINED', level) {
+  constructor(title = 'NO LOG TITLE DEFINED', config) {
     this.title = title;
     this.stack = [];
-    this.stackSize = config.stackSize;
-    this.configDeploy = '';
-    if (fs.existsSync(`${home}/common-js-tools.json`)) {
-      console.log('common-js-tools -> the use of common-js-tools.json is deprecated.');
-      console.log('use instead const log = new Log("The Script", "development or production");.');
-      console.log('now you can use the bucket config json, like: const log = new Log("The Script", bucketConfig.errorLevel);');
-      try {
-        const configJson = JSON.parse(fs.readFileSync(`${home}/common-js-tools.json`, 'utf8'));
-        this.stackSize = configJson.stackSize ? configJson.stackSize : this.stackSize;
-        this.configDeploy = configJson.deploy ? configJson.deploy : '';
-        if (!this.configDeploy) { this.configDeploy = process.env.NODE_ENV || process.env.ENVIRONMENT || process.env.environment; }
-      } catch (error) {
-        console.log('Log.js failed to load settings');
-        console.log(error);
-      }
-      return;
-    }
-    if (!this.configDeploy) { this.configDeploy = process.env.NODE_ENV || process.env.ENVIRONMENT || process.env.environment || 'production'; }
-    if (level) this.configDeploy = level === 'development' ? 'development' : 'production';
+    this.splunkStack = [];
+    this.stackSize = config && config.stackSize ? config.stackSize : 100;
+    this.errorLevel = config && config.errorLevel ? config.errorLevel : 'production';
+    this.splunk = config && config.splunk && config.splunk.enabled ? config.splunk : false;
+    if (this.splunk && (!config.splunk.url || !config.splunk.token)) throw new Error('Log, Splunk -> Malformed for splunk Settings');
+    if (this.splunk && (!config.splunk.url || !config.splunk.token)) throw new Error('Log,logSettings');
+    if (process.env.NODE_ENV) this.errorLevel = process.env.NODE_ENV;
   }
 
-  static sequelize(...args) {
-    console.log('common-js-tools -> the use of sequelize is deprecated.');
-    console.log('use instead Log.logSequelize("development or production");.');
-    if (!Log.isDev({})) return;
-    const reg = /^([^:]+:)(.*)/;
-    const matchs = String(args[0] || '').match(reg);
-    if (!matchs || !matchs.length) console.log(`\x1b[32m[SEQUELIZE]\x1b[0m ${Log.getDate()} \x1b[32m(SEQUELIZE) -> \x1b[0m\x1b[33m${args}\x1b[0m`);
-    else console.log(`\x1b[32m[SEQUELIZE]\x1b[0m ${Log.getDate()} \x1b[32m(${matchs[1]}) -> \x1b[0m\x1b[33m${matchs[2]}\x1b[0m`);
-  }
-
-  static logSequelize(level) {
+  static logSequelize(config) {
     return (...args) => {
-      if (level !== 'development') return;
+      if (config.errorLevel !== 'development') return;
       const reg = /^([^:]+:)(.*)/;
       const matchs = String(args[0] || '').match(reg);
       if (!matchs || !matchs.length) console.log(`\x1b[32m[SEQUELIZE]\x1b[0m ${Log.getDate()} \x1b[32m(SEQUELIZE) -> \x1b[0m\x1b[33m${args}\x1b[0m`);
@@ -49,7 +24,7 @@ class Log {
   }
 
   static isDev(log) {
-    if (log.configDeploy === 'production') return false;
+    if (log.errorLevel === 'production') return false;
     return true;
   }
 
@@ -73,7 +48,7 @@ class Log {
 
     if (!Log.isDev(this)) {
       types = {
-        log: `[LOG] ${date} ${this.title ? `(${this.title})` : ''} ->`,
+        log: `[:LOG:] ${date} ${this.title ? `(${this.title})` : ''} ->`,
         trace: `[TRACE] ${date} ${this.title ? `(${this.title})` : ''} ->`,
         error: `[ERROR] ${date} ${this.title ? `(${this.title})` : ''} ->`,
       };
@@ -85,14 +60,23 @@ class Log {
   console(...args) {
     let log = this.create('log');
     log = log.concat(Log.beautify(args));
-    console.log(...log);
+    if (this.errorLevel !== 'onlySplunk') console.log(...log);
+    if ((this.errorLevel === 'production' || this.errorLevel === 'onlySplunk') && this.splunk && this.splunk.enabled) {
+      this.send([{ type: ':LOG:', args }]);
+    }
   }
 
   trace(...args) {
     let log = this.create('trace');
     log = log.concat(Log.beautify(args));
-    if (this.stack.length > this.stackSize) this.stack = [];
-    if (Log.isDev(this)) {
+    if (this.stack.length > this.stackSize) {
+      this.stack = [];
+      this.splunkStack = [];
+    }
+    if ((this.errorLevel === 'production' || this.errorLevel === 'onlySplunk') && this.splunk && this.splunk.enabled) {
+      this.splunkStack.push({ type: 'TRACE', args });
+    }
+    if (Log.isDev(this) && this.errorLevel !== 'onlySplunk') {
       return console.log(...log);
     }
     return this.stack.push(log);
@@ -101,11 +85,89 @@ class Log {
   error(...args) {
     let log = this.create('error');
     log = log.concat(Log.beautify(args));
+    this.stack.push(log);
+    if ((this.errorLevel === 'production' || this.errorLevel === 'onlySplunk') && this.splunk && this.splunk.enabled) {
+      this.splunkStack.push({ type: 'ERROR', args });
+    }
     this.stack.map((error) => {
-      console.log(...error);
+      if (this.errorLevel !== 'onlySplunk') console.log(...error);
+      return error;
     });
     this.stack = [];
-    console.log(...log);
+    if ((this.errorLevel === 'production' || this.errorLevel === 'onlySplunk') && this.splunk && this.splunk.enabled) {
+      this.send(this.splunkStack, this);
+    }
+  }
+
+  send(stack, self) {
+    let options = {
+      hostname: this.splunk.url,
+      port: 443,
+      path: '/services/collector/event/1.0',
+      method: 'POST',
+      headers: {
+        Authorization: `Splunk ${this.splunk.token}`,
+        'Content-Type': 'application/raw',
+        'Content-Length': 0,
+      },
+    };
+    let content = '';
+    stack.map((log) => {
+      log.args.map((arg) => {
+        let str = arg.message || arg;
+        if (typeof str !== 'string') {
+          try {
+            JSON.stringify(arg);
+          } catch (e) {
+            console.log('Content malformed for splunk');
+            console.log(arg);
+          }
+          return arg;
+        }
+        content += JSON.stringify({
+          source: this.title,
+          sourcetype: 'httpevent',
+          time: Date.now(),
+          event: {
+            message: str,
+            type: log.type,
+            severity: 'info',
+          },
+        });
+      });
+      return log;
+    });
+    options.headers['Content-Length'] = content.length;
+    let req = https.request(options, (res) => {
+      res.on('data', (data) => {
+        if (self) self.splunkStack = [];
+        try {
+          let result = JSON.parse(Buffer.from(data).toString());
+          console.log(result);
+          console.log(!result.text === 'Success');
+          if (result.text !== 'Success') {
+            console.log('Splunk, response is not Success');
+            console.log(data);
+            console.log('#Content#');
+            console.log(content);
+          }
+        } catch (e) {
+          console.log(e);
+          console.log('#Content#');
+          console.log(content);
+        }
+      });
+    });
+
+    req.on('error', (e) => {
+      console.log('Splunk, not responding');
+      console.log(e);
+      console.log('#Content#');
+      console.log(content);
+      if (self) self.splunkStack = [];
+    });
+    req.write(content);
+    req.end();
   }
 }
 

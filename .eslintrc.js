@@ -16,5 +16,6 @@ module.exports = {
   },
   rules: {
     "prefer-const": 0,
+    "max-len": ["error", { "code": 150 }]
   },
 };
