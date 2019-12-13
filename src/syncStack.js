@@ -39,17 +39,23 @@
 const syncStack = async (stack, timeout, resulStack) => new Promise((resolve) => {
   let st = stack;
   let rs = resulStack;
+  if (!stack.length) return resolve(rs);
   if (!resulStack) rs = [];
   const execute = st.shift();
   setTimeout(async () => {
-    let tryDo = null;
-    try {
-      tryDo = execute[1](...execute[0]);
-    } catch (error) {
-      tryDo = error;
+    if (!execute.length) {
+      console.log('syncStack skip');
+      rs.push([]);
+    } else {
+      console.log('syncStack execunting: ', execute[0]);
+      let tryDo = null;
+      try {
+        tryDo = execute[1](...execute[0]);
+      } catch (error) {
+        tryDo = error;
+      }
+      rs.push(tryDo);
     }
-    rs.push(tryDo);
-    if (!st.length) resolve(rs);
     let recursiv = await syncStack(st, timeout, rs);
     resolve(recursiv);
   }, timeout);
