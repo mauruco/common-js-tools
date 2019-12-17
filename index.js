@@ -1,4 +1,5 @@
 const Log = require('./src/Log');
+const Holidays = require('./src/Holidays');
 const request = require('./src/request');
 const syncStack = require('./src/syncStack');
 
@@ -22,6 +23,7 @@ const round = (n, d) => Number(`${Math.round(`${n}e${d || 2}`)}e-${d || 2}`);
 
 module.exports = {
   Log,
+  Holidays,
   request,
   syncStack,
   round,
