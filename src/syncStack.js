@@ -47,7 +47,7 @@ const syncStack = async (stack, timeout, resulStack) => new Promise((resolve) =>
       console.log('syncStack skip');
       rs.push([]);
     } else {
-      console.log('syncStack execunting: ', execute[0]);
+      console.log(`syncStack execunting: ${execute[1].name}(${execute[0].join(',')})`);
       let tryDo = null;
       try {
         tryDo = execute[1](...execute[0]);
